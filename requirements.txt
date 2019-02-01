@@ -1,0 +1,6 @@
+PyOpenGL
+PyQt5
+pyqtgraph
+PyWavefront
+scipy
+pyformulas
