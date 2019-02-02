@@ -31,6 +31,7 @@ class className(object):
 '''
 
 import numpy as np
+from numpy import floor
 from numpy import sin, cos
 
 '''
@@ -38,6 +39,14 @@ TWIP Custom Error
 '''
 class SysNoParameterError(Exception):
    pass
+
+def wraptopi(x):
+    pi = 3.141592
+    x = x - floor(x/(2*pi)) *2 *pi
+    if x > pi:
+        x = x - 2*pi
+    return x 
+
 
 def rk4(f):
     '''Generic implementation of the Runge-Kutta solver with Dormand-Prince weights
@@ -97,6 +106,7 @@ class SysBase():
         self.equations = "None"
         self.ct = 0
         self.parameters = default_bot
+        self.force = [0, 0, 0, 0]
 
 
     def set_parameter(self, name, value):
@@ -114,9 +124,13 @@ class SysBase():
     def get_IC(self):
         return self.q
 
-    def update_current_state(self, dt, F):
+    def set_force(self, F):
+        self.force = F
+
+    def update_current_state(self, dt, F = None):
+        #print(self.force)
         if F is None:
-            F = np.zeros((6))
+            F = self.force
         # Update dynamics
         self.dq = rk4(lambda t, q: self.vdq(t, q, F))
         self.ct, self.q = self.ct + dt,  self.q + self.dq( self.ct, self.q, dt )
@@ -204,6 +218,7 @@ class TWIPZi(SysBase):
 
     def convert_sys(self):
         self.p[2] = self.q[1]
+
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt

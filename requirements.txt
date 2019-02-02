@@ -4,3 +4,4 @@ pyqtgraph
 PyWavefront
 scipy
 pyformulas
+pygame
