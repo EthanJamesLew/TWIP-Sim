@@ -87,8 +87,8 @@ class TWIPWidget(gl.GLViewWidget):
 
         hud_font =  QtGui.QFont()
         hud_font.setPointSize(8)
-        #hud_font.setBold(True)
-        #hud_font.setWeight(75)
+        hud_font.setBold(True)
+        hud_font.setWeight(75)
 
         self.hud_font = hud_font
         self.setAutoFillBackground(False)
@@ -161,7 +161,7 @@ class TWIPWidget(gl.GLViewWidget):
 
         self.translate_all(0, 0, self.r)
 
-    def draw_twip(self):
+    def draw_twip(self, D=None):
         ''' Given a TWIP's positional coordinates, draw a TWIP on canvas with that orientation.
         '''
 
@@ -214,6 +214,9 @@ class TWIPWidget(gl.GLViewWidget):
         self.pstate = cstate
 
         self.paintGL()
+
+    def set_c(self, c):
+        self.c = c
         
     def paintGL(self, *args, **kwargs):
         ''' Redefine the paintGL method to include painter
@@ -224,14 +227,16 @@ class TWIPWidget(gl.GLViewWidget):
             self.paint_hud()
 
 
-    def paint_hud(self):
+    def paint_hud(self, D = None):
         ''' Paint the HUD information
         '''
         w, h = self.width(), self.height()
         self.painter.begin(self)
         self.painter.setPen(QtCore.Qt.white)
+        self.painter.setFont(self.hud_font)
         self.painter.drawText(QtCore.QRectF(3, 3,w,h), QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop,  "%s\nα: %3.3f\nθ: %3.3f \n(x, y): %1.3f, %1.3f" % (self.twip.equations, wraptopi(self.pstate[5])*180/3.141592, wraptopi(self.pstate[2])*180/3.141592, self.pstate[0], self.pstate[1]))
         self.painter.drawText(QtCore.QRectF(0,0,w - 3,h - 3), QtCore.Qt.AlignRight|QtCore.Qt.AlignBottom, "%d FPS" % round(self.fps)  )
+        self.painter.drawText(QtCore.QRectF(0,0,w - 3,h - 3), QtCore.Qt.AlignRight|QtCore.Qt.AlignTop, "Controller: PID\nP: %1.3f\nD: %1.3f\nI: %1.3f" % (self.c.kp, self.c.kd, self.c.ki)  )
         self.painter.end()
 
     def translate_all(self, x, y, z, local=False):
