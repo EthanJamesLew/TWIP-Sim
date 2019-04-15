@@ -3,8 +3,7 @@
 Ethan Lew
 4/14/2019
 elew@pdx.edu
-
-
+Credit to Justin Patterson (jp32@pdx.edu) for providing this model and measuring the motor parameters.
 '''
 
 import numpy as np
@@ -21,6 +20,8 @@ class DCMotor(SysBase):
         R (Ohms) - Motor Resistance
         Km (V s) - proportionality constant tau = Km * I
         Ke (V s / rad) - proportionality constant EMF = Ke * omega
+
+    Note that the simulator is unitless, so the units provided are examples.
     '''
     def __init__ (self):
         SysBase.__init__(self, n=2)
