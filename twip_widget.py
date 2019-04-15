@@ -26,9 +26,10 @@ from PyQt5 import QtGui, QtWidgets, QtOpenGL, QtCore
 import pyqtgraph as pg
 import pyqtgraph.opengl as gl
 import pywavefront as wave
-from twip import TWIPZi
+from twip import TWIPZi, wraptopi
 import numpy as np
-from numpy import sin, cos
+from numpy import sin, cos, floor
+import time
 
 def obj_to_mesh(obj_context, object_name):
     ''' Take geometry contents from a pywavefront scene and put it in a gl.MeshData structure
@@ -54,7 +55,7 @@ class TWIPWidget(gl.GLViewWidget):
     It also supports the model of LOCAL transforms -- the robot must be assembled in space
     before its planar motions can be described as a single mass. 
     '''
-    def __init__(self, parent, twip):
+    def __init__(self, parent, twip, hud = True):
         gl.GLViewWidget.__init__(self, parent)
 
         # Import TWIP geometry from twip.obj
@@ -81,6 +82,28 @@ class TWIPWidget(gl.GLViewWidget):
 
         self.pstate = self.twip.get_position_coordinates()
 
+        
+        self.painter = QtGui.QPainter()
+
+        hud_font =  QtGui.QFont()
+        hud_font.setPointSize(8)
+        hud_font.setBold(True)
+        hud_font.setWeight(75)
+
+        self.hud_font = hud_font
+        self.setAutoFillBackground(False)
+        #self.painter.setFont(self.hud_font)
+
+        self.ptime = time.time()
+        self.frames = 8
+        self.cframe = 0
+        self.fps = 0
+
+        self.do_hud = hud
+
+        
+        
+
     def assemble_robot(self):
         ''' Create meshItems containing the robot's geometry and set mesh attributes, namely shading and parents
         '''
@@ -88,9 +111,7 @@ class TWIPWidget(gl.GLViewWidget):
         shader = "edgeHilight"
         sf = 3
         wheel_color = (.8/sf, .8/sf, .8/sf, 0.2)
-        #load_color = (0.8/sf, 0, 0, 0.2/sf)
         load_color = wheel_color
-        #base_color = (.108/sf, .373/sf, .711/sf, 0.2/sf)
         base_color = wheel_color
 
         # Load meshes as GLMeshItems
@@ -140,9 +161,23 @@ class TWIPWidget(gl.GLViewWidget):
 
         self.translate_all(0, 0, self.r)
 
-    def draw_twip(self):
+    def draw_twip(self, D=None):
         ''' Given a TWIP's positional coordinates, draw a TWIP on canvas with that orientation.
         '''
+
+        # Get moving average FPS
+        if self.fps == 0:
+            ctime = time.time()
+            self.fps = (1/(ctime - self.ptime))
+            self.ptime = ctime
+        if self.cframe == self.frames:
+            ctime = time.time()
+            self.fps = (self.frames/(ctime - self.ptime))
+            self.ptime = ctime
+            self.cframe = 0
+
+        self.cframe = self.cframe + 1
+
         rad_to_deg = 180.0/3.141592654 
 
         cstate = self.twip.get_position_coordinates() 
@@ -178,7 +213,31 @@ class TWIPWidget(gl.GLViewWidget):
 
         self.pstate = cstate
 
-        self.updateGL()
+        self.paintGL()
+
+    def set_c(self, c):
+        self.c = c
+        
+    def paintGL(self, *args, **kwargs):
+        ''' Redefine the paintGL method to include painter
+        '''
+        gl.GLViewWidget.paintGL(self, *args, **kwargs)
+
+        if self.do_hud:
+            self.paint_hud()
+
+
+    def paint_hud(self, D = None):
+        ''' Paint the HUD information
+        '''
+        w, h = self.width(), self.height()
+        self.painter.begin(self)
+        self.painter.setPen(QtCore.Qt.white)
+        self.painter.setFont(self.hud_font)
+        self.painter.drawText(QtCore.QRectF(3, 3,w,h), QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop,  "%s\nα: %3.3f\nθ: %3.3f \n(x, y): %1.3f, %1.3f" % (self.twip.equations, wraptopi(self.pstate[5])*180/3.141592, wraptopi(self.pstate[2])*180/3.141592, self.pstate[0], self.pstate[1]))
+        self.painter.drawText(QtCore.QRectF(0,0,w - 3,h - 3), QtCore.Qt.AlignRight|QtCore.Qt.AlignBottom, "%d FPS" % round(self.fps)  )
+        self.painter.drawText(QtCore.QRectF(0,0,w - 3,h - 3), QtCore.Qt.AlignRight|QtCore.Qt.AlignTop, "Controller: PID\nP: %1.3f\nD: %1.3f\nI: %1.3f" % (self.c.kp, self.c.kd, self.c.ki)  )
+        self.painter.end()
 
     def translate_all(self, x, y, z, local=False):
         ''' Helper function to move all meshItems
@@ -226,9 +285,9 @@ if __name__ == "__main__":
             # Setup twip initial state
             dt = 1/30
             self.twip.set_IC([0, 0, 0, 0, 0, 0])
-            self.twip.update_current_state(dt, [1/dt*0.5, -1/dt*0.5,  0, 0]) 
+            self.twip.update_current_state(dt, [1/dt*0.1, -1/dt*0.1,  0, 0]) 
             self.dt = dt
-
+            
         def update_twip(self):
             ''' program mainloop method
             '''
@@ -237,12 +296,12 @@ if __name__ == "__main__":
 
     app = QtWidgets.QApplication(['TWIP Viewer'])
     window = MainWindow()
-    window.setFixedSize(500,500)
+    window.resize(200, 200)
     
-    timer = QtCore.QTimer()
-    timer.timeout.connect(window.update_twip)
-    timer.start(30)
-        
+    sim_timer = QtCore.QTimer()
+    sim_timer.timeout.connect(window.update_twip)
+    sim_timer.start(1/90*1000)
+
     window.show()
 
     app.exec_()

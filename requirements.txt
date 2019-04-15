@@ -4,3 +4,6 @@ pyqtgraph
 PyWavefront
 scipy
 pyformulas
+pygame
+diffeqpy 
+numba
