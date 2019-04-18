@@ -1,6 +1,6 @@
-from numpy import floor
+from numpy import floor, zeros
 from scipy.integrate import odeint
-#from diffeqpy import de
+import collections
 
 def wraptopi(x):
     '''Phase wrapping method from [-pi, pi]
@@ -100,10 +100,10 @@ class SysBase(object):
     def set_force(self, F):
         self.force = F
 
-    def solveDE(self, dt, x, f):
+    def solveSystem(self, dt, x, f):
         tspan = (self.ct, self.ct + dt)
         sol =  odeint(f, x, tspan)
-        return sol
+        return sol[-1, :]
 
     def update_current_state(self, dt, F = None):
         #print(self.force)
@@ -120,13 +120,11 @@ class SysBase(object):
         #self.dp = rk4(lambda t, q: self.vdp(t, q, self.q))
         #self.p = self.p + self.dp( self.ct, self.p, dt )
         
-        sol = self.solveDE(dt, self.q, lambda t, q: self.vdq(q, t, F))
-        self.q = sol[-1, :]
+        self.q = self.solveSystem(dt, self.q, lambda t, q: self.vdq(q, t, F))
 
         self.convert_sys()
 
-        sol = self.solveDE(dt, self.p, lambda t, q: self.vdp(q, t, self.q))
-        self.p = sol[-1, :]
+        self.p = self.solveSystem(dt, self.p, lambda t, q: self.vdp(q, t, self.q))
 
         self.ct += dt
 
@@ -154,3 +152,63 @@ class SysBase(object):
         s += 'Dynamics Space: %d\n' % len(list(self.q))
         s += 'Kinematics Space: %d\n' % len(list(self.p))
         return s
+
+    
+
+class IterSysBase(SysBase):
+    ''' IterSysBase adds interated map features to the dynamical systems
+
+    SysBase describes behavior occuring in continuous time. In mixed signal 
+    systems, discrete events can happen that affect continuous dynamical behavior.
+    Given a discrete function x[n], its relation to continuous time is
+
+    x(t=n*T+Tp) = x[n]
+
+    Accordingly, a sampling period, T, needs to be known as well as a sampling
+    phase, Tp. Further, an interated map needs to be implemented to yield the
+    system's next state. For an arbitrary system, 
+
+    y[n] = f(y[n-1], y[n-2], ..., y[n-N], x[n], x[n-1], ..., x[n-M])
+
+    where x is the system input and y is the system output. Accordingly, the 
+    existing methods vdp and vdq can hold the iterated map functions. 
+    '''
+    def __init__(self, Ts, Tp=0.001, N=1, M=1, n=3):
+        SysBase.__init__(self, n=n)
+
+        # Relation to continuous time -- sampling period Ts and phase Tp
+        self.Ts = Ts
+        self.Tp = Tp
+
+        # Iteration scheduling
+        self.next_iter = self.Tp   
+
+
+    def update_current_state(self, dt, F = None):
+        ''' 
+            1. Determine how many iteration events occur in time interval
+            2. Run appropiate iterated maps
+            3. Store input/output in arrays
+        '''
+        # get time at start of function call
+        st = self.ct
+
+        if(self.next_iter >= (st + dt)):
+            self.ct += dt
+        else:
+            # solve for number of iterations
+            while (self.next_iter < (st + dt)):
+                # calculate new dt, keep the force the same
+                super(IterSysBase, self).update_current_state(self.next_iter - self.ct, F)
+                # update the next iteration time
+                self.next_iter += self.Ts
+
+    def solveSystem(self, dt, x, f):
+        ''' Format in a way that is readable by the update method
+        '''
+        sol = f(x, dt)
+        return sol
+
+
+    def vdp(self, t, q, ic):
+        return self.p
