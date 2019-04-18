@@ -14,7 +14,10 @@ def wraptopi(x):
     x = x - floor(x/(2*pi)) *2 *pi
     if x > pi:
         x = x - 2*pi
-    return x 
+    return x
+
+def minmax(x, s):
+    return min(max(x, -s), s)
 
 
 def rk4(f):
@@ -64,7 +67,7 @@ class SysBase(object):
     def __init__(self, n = 3):
         default_bot = {"Mw": 0.8, "Iw": 0.02, "r" : .2, "m" : 0.5,
              "l" : .15, "d" : .6, "M" : 0.7, "IM": 0.08,
-            "Ip": 0.06, "g": 9.81 }
+                "Ip": 0.06, "g": 9.81 }
 
         self.parameters = {}
         self.equations = "None"
@@ -74,6 +77,8 @@ class SysBase(object):
         self.q = None
         self.force = None
 
+    def update_params(self):
+        pass
 
     def set_parameter(self, name, value):
         self.parameters[name] = value
@@ -84,6 +89,7 @@ class SysBase(object):
                 self.parameters[key] = value
             except KeyError:
                 pass
+        self.update_params()
 
     def get_parameter(self, name):
         if name in self.parameters:

@@ -32,7 +32,7 @@ class className(object):
 
 import numpy as np
 from numpy import sin, cos
-from system import SysBase, wraptopi, rk4
+from system import SysBase, wraptopi
 
 class TWIPZi(SysBase):
     '''TWIP System described in Z. Li et al, Advanced Control of Wheeled Inverted Pendulums, Springer-Verlag London 2013
@@ -59,7 +59,9 @@ class TWIPZi(SysBase):
         self.q = np.zeros((6))
         self.p = np.zeros((5))
         self.kinematic_coordinates = np.zeros((5, 1))
-        self.force = np.zeros((0))
+        self.force = np.zeros((4, 1))
+
+        self.update_params()
 
     def get_position_coordinates(self):
         return np.concatenate((self.p, [self.q[2]]))
@@ -80,19 +82,21 @@ class TWIPZi(SysBase):
         qp[4] = v/r - omega/d 
         return qp
 
-    def vdq(self, t, q, F):
+    def update_params(self):
         # Unpack Parameters
         rbt = self.parameters
-        M =     rbt['M']
-        Mw =    rbt['Mw']
-        m =     rbt['m']
-        Iw =    rbt['Iw']
-        Ip =    rbt['Ip']
-        Imm =    rbt['IM']
-        r =    rbt['r']
-        l =     rbt['l']
-        d =     rbt['d']
-        g = rbt['g']
+        self.M =     rbt['M']
+        self.Mw =    rbt['Mw']
+        self.m =     rbt['m']
+        self.Iw =    rbt['Iw']
+        self.Ip =    rbt['Ip']
+        self.Imm =    rbt['IM']
+        self.r =    rbt['r']
+        self.l =     rbt['l']
+        self.d =     rbt['d']
+        self.g = rbt['g']
+
+    def vdq(self, t, q, F):
 
         # Unpack forcing parameters
         tl =    F[0]
@@ -105,15 +109,14 @@ class TWIPZi(SysBase):
         qp[0] = q[3]
         qp[1] = q[4]
         qp[2] = q[5]
-        qp[3] =((m*l**2+Imm)*(-m*l*q[5]**2*sin(q[2])-tl/r-tr/r-dl-dr)+m**2*l**2*cos(q[2])*g*sin(q[2]))/((m*l**2+Imm)*(M+2*Mw+m+2*Iw/r**2)-m**2*l**2*cos(q[2])**2)
-        qp[4] = 2*d*(tl/r-tr/r+dl-dr)/(Ip+(2*(Mw+Iw/r**2))*d**2)
-        qp[5] =  (m*l*cos(q[2])*(-m*l*q[5]**2*sin(q[2])-tl/r-tr/r-dl-dr)+m*g*l*sin(q[2])*(M+2*Mw+m+2*Iw/r**2))/((m*l**2+Imm)*(M+2*Mw+m+2*Iw/r**2)-m**2*l**2*cos(q[2])**2) 
+        qp[3] =((self.m*self.l**2+self.Imm)*(-self.m*self.l*q[5]**2*sin(q[2])-tl/self.r-tr/self.r-dl-dr)+self.m**2*self.l**2*cos(q[2])*self.g*sin(q[2]))/((self.m*self.l**2+self.Imm)*(self.M+2*self.Mw+self.m+2*self.Iw/self.r**2)-self.m**2*self.l**2*cos(q[2])**2)
+        qp[4] = 2*self.d*(tl/self.r-tr/self.r+dl-dr)/(self.Ip+(2*(self.Mw+self.Iw/self.r**2))*self.d**2)
+        qp[5] =  (self.m*self.l*cos(q[2])*(-self.m*self.l*q[5]**2*sin(q[2])-tl/self.r-tr/self.r-dl-dr)+self.m*self.g*self.l*sin(q[2])*(self.M+2*self.Mw+self.m+2*self.Iw/self.r**2))/((self.m*self.l**2+self.Imm)*(self.M+2*self.Mw+self.m+2*self.Iw/self.r**2)-self.m**2*self.l**2*cos(q[2])**2) 
                 
         return qp
 
     def convert_sys(self):
         self.p[2] = self.q[1]
-
 
 if __name__ == "__main__":
     import matplotlib.pyplot as plt

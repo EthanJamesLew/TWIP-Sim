@@ -223,8 +223,8 @@ class TWIPWidget(gl.GLViewWidget):
         '''
         gl.GLViewWidget.paintGL(self, *args, **kwargs)
 
-        if self.do_hud:
-            self.paint_hud()
+        #if self.do_hud:
+        #    self.paint_hud()
 
 
     def paint_hud(self, D = None):
