@@ -1,3 +1,13 @@
+''' Dynamical System Base
+
+Ethan Lew
+4/18/19
+elew@pdx.edu
+
+The base classes needed to create objects whose dynamics can be simulated in continuous 
+and discrete time
+'''
+
 from numpy import floor, zeros
 from scipy.integrate import odeint
 import collections
@@ -65,14 +75,10 @@ class SysBase(object):
     class can model the delay and noise present in a realized TWIP system.
     '''
     def __init__(self, n = 3):
-        default_bot = {"Mw": 0.8, "Iw": 0.02, "r" : .2, "m" : 0.5,
-             "l" : .15, "d" : .6, "M" : 0.7, "IM": 0.08,
-                "Ip": 0.06, "g": 9.81 }
-
         self.parameters = {}
         self.equations = "None"
         self.ct = 0
-        self.parameters = default_bot
+        self.parameters = {}
         self.p = None
         self.q = None
         self.force = None

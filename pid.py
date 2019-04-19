@@ -1,3 +1,12 @@
+''' PID System Controller
+
+Ethan Lew
+4/18/19
+elew@pdx.edu
+
+Create a PID controller capable of being used with SysBase Dynamics object 
+'''
+
 from system import IterSysBase, wraptopi, minmax
 import numpy as np
 from numpy import sin, cos
