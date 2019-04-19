@@ -92,7 +92,7 @@ class TWIPWidget(gl.GLViewWidget):
 
         self.hud_font = hud_font
         self.setAutoFillBackground(False)
-        #self.painter.setFont(self.hud_font)
+        self.painter.setFont(self.hud_font)
 
         self.ptime = time.time()
         self.frames = 8
@@ -212,8 +212,10 @@ class TWIPWidget(gl.GLViewWidget):
         self.rotate_all(90, 0, 0, 1)
 
         self.pstate = cstate
-
-        self.paintGL()
+        try:
+            self.paintGL()
+        except ZeroDivisionError:
+            pass
 
     def set_c(self, c):
         self.c = c
@@ -236,7 +238,7 @@ class TWIPWidget(gl.GLViewWidget):
         self.painter.setFont(self.hud_font)
         self.painter.drawText(QtCore.QRectF(3, 3,w,h), QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop,  "%s\nα: %3.3f\nθ: %3.3f \n(x, y): %1.3f, %1.3f" % (self.twip.equations, wraptopi(self.pstate[5])*180/3.141592, wraptopi(self.pstate[2])*180/3.141592, self.pstate[0], self.pstate[1]))
         self.painter.drawText(QtCore.QRectF(0,0,w - 3,h - 3), QtCore.Qt.AlignRight|QtCore.Qt.AlignBottom, "%d FPS" % round(self.fps)  )
-        self.painter.drawText(QtCore.QRectF(0,0,w - 3,h - 3), QtCore.Qt.AlignRight|QtCore.Qt.AlignTop, "Controller: PID\nP: %1.3f\nD: %1.3f\nI: %1.3f" % (self.c.kp, self.c.kd, self.c.ki)  )
+        #self.painter.drawText(QtCore.QRectF(0,0,w - 3,h - 3), QtCore.Qt.AlignRight|QtCore.Qt.AlignTop, "Controller: PID\nP: %1.3f\nD: %1.3f\nI: %1.3f" % (self.c.kp, self.c.kd, self.c.ki)  )
         self.painter.end()
 
     def translate_all(self, x, y, z, local=False):
