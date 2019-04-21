@@ -12,6 +12,9 @@ import numpy as np
 from numpy import sin, cos
 from numba import jit
 
+class PIDIntegralError(Exception):
+   pass
+
 class IterPID(IterSysBase):
     '''Discrete Time PID Controller
 
@@ -25,7 +28,7 @@ class IterPID(IterSysBase):
 
     Integral Methods:
     'Normal' - accumulator
-    'Trapezoidal' - Newton's Integration Method
+    'Linear' - Newton's Integration Method
     'Quadratic' - Quadratic Simpson's Method
 
     Derivative Methods:
@@ -46,7 +49,6 @@ class IterPID(IterSysBase):
 
         self.force = np.zeros((1))
 
-
     def tune(self, Kp, Kd, Ki):
         self.parameters['Kp'] = Kp
         self.parameters['Kd'] = Kd
@@ -66,12 +68,14 @@ class IterPID(IterSysBase):
         dq[2] = q[1]
 
         # Apply integration method
-        if(method == 'trapeziodal'):
+        if(method == 'linear'):
             dq[3] = q[3] + (F[0]/2 + dq[1]/2)*self.Ts
         elif(method == 'quadratic'):
             dq[3] = q[3] + ((F[0] + 4*dq[1] + dq[2])/6)*self.Ts
-        else:
+        elif(method == 'normal'):
             dq[3] = q[3] + F[0]*self.Ts
+        else:
+            raise PIDIntegralError
         
         return dq
 
@@ -97,7 +101,7 @@ class IterPID(IterSysBase):
 
 if __name__ == '__main__':
     import matplotlib.pyplot as plt
-    PID = IterPID(.01)
+    PID = IterPID(1)
 
     print(PID)
     nsteps = 340
