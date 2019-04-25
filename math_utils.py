@@ -8,6 +8,50 @@ elew@pdx.edu
 
 import numpy as np
 
+def gradient_fast(s, u, gradAcc):
+    r, c = np.shape(u)
+    tangent_vector = np.zeros((r, c+2))
+
+    u_big = np.concatenate((np.array(u[:, -1], ndmin=2).T, u, np.array(u[:,0],ndmin=2).T), axis=1)
+    s_big_pre = np.concatenate((s, s+2*np.pi, s+4*np.pi))
+    s_big = s_big_pre[len(s)-1:2*len(s)+1]
+
+    for ndim in range(0, 3):
+        print(u_big[ndim, :], s_big)
+        x = np.gradient(u_big[ndim, :])/ np.gradient(s_big)
+        tangent_vector[ndim, :] = x
+
+    tangent_vector = tangent_vector[:, 1:-1]
+
+    return tangent_vector
+
+def get_stable_eigenvectors(f, fixed_pt):
+    jacob, j_err = jacobian(f, fixed_pt)
+    d, v = np.linalg.eig(jacob)
+    
+    neg_mask = (d < 0)
+    d = np.arange(1, 4, 1)
+    neg_d = d[neg_mask]
+    neg_v = v[:, neg_mask]
+
+    pos_d = d[np.invert(neg_mask)]
+    pos_v =  v[:, np.invert(neg_mask)]
+
+    if len(pos_d) == 2:
+        field_multiplier = 1
+        v = pos_v
+        d = pos_d
+    else:
+        field_multiplier = -1
+        v = neg_v
+        d = neg_d
+
+    v = v[:, 0:2]
+    d = d[0:2]
+
+    return v, d, field_multiplier
+
+
 def jacobian(f, fixed_pt):
     # Convert syntax
     x0 = fixed_pt
@@ -131,5 +175,11 @@ if __name__ == "__main__":
     jac, err = jacobian(test_function, [1, 1, 1])
     print(jac)
     print(err)
+
+    get_stable_eigenvectors(test_function, [-1,-1,-1])
+
+    print(gradient_fast(np.array([1,2,3]), np.array([[1,2,3],[-1,0,4],[1,1,0]]), 0))
+
+
 
 
