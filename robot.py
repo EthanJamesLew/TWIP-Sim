@@ -155,8 +155,8 @@ if __name__ == "__main__":
 
             # Setup twip initial state
             dt = 1/30
-            self.twip.set_IC([0, 0, 0, 0, 0, 0])
-            self.twip.update_current_state(dt, [1/dt*0.5, 1/dt*0.4,  0, 0]) 
+            self.twip.set_IC([0, 0, .1, .1, 0, .1])
+            #self.twip.update_current_state(dt, [1/dt*0.5, 1/dt*0.4,  0, 0]) 
             self.dt = dt
             
         def update_twip(self):

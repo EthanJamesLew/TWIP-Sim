@@ -12,6 +12,13 @@ import numpy as np
 from numpy import sin, cos
 from numba import jit
 
+import enum 
+class IntegrationType(enum.Enum): 
+    rectangular = 0
+    trapezoidal = 1
+    parabolic = 2
+  
+
 class PIDIntegralError(Exception):
    pass
 
@@ -27,9 +34,9 @@ class IterPID(IterSysBase):
     'angular' - angular control input (wraps to [-pi, pi])
 
     Integral Methods:
-    'Normal' - accumulator
-    'Linear' - Newton's Integration Method
-    'Quadratic' - Quadratic Simpson's Method
+    'Rectangular' - accumulator
+    'Trapezoidal' - Newton's Integration Method
+    'Parabolic' - Quadratic Simpson's Method
 
     Derivative Methods:
     'backwards' - Backwards difference
@@ -40,7 +47,7 @@ class IterPID(IterSysBase):
         IterSysBase.__init__(self, Ts, Tp=Tp, n=1)
         default_PID = {'Kp': 1.0, 'Kd': 1.0, 'Ki': 1.0,
                          'max': 10000.0, 'i_max': 10000.0, 'd_max': 10000.0,
-                         'i_method' : 'normal', 'd_method' : 'backwards', 'type' : 'linear'}
+                         'i_method' : IntegrationType.trapezoidal, 'd_method' : 'backwards', 'type' : 'linear'}
         self.parameters = default_PID
         self.equations = 'PID'
 
@@ -49,10 +56,16 @@ class IterPID(IterSysBase):
 
         self.force = np.zeros((1))
 
+        self.update_params()
+
     def tune(self, Kp, Kd, Ki):
         self.parameters['Kp'] = Kp
         self.parameters['Kd'] = Kd
         self.parameters['Ki'] = Ki
+
+    def update_params(self):
+        method = self.parameters['i_method']
+
 
     def vdq(self, t, q, F):
         method = self.parameters['i_method']
@@ -68,11 +81,11 @@ class IterPID(IterSysBase):
         dq[2] = q[1]
 
         # Apply integration method
-        if(method == 'linear'):
+        if(method == IntegrationType.rectangular):
             dq[3] = q[3] + (F[0]/2 + dq[1]/2)*self.Ts
-        elif(method == 'quadratic'):
+        elif(method == IntegrationType.trapezoidal):
             dq[3] = q[3] + ((F[0] + 4*dq[1] + dq[2])/6)*self.Ts
-        elif(method == 'normal'):
+        elif(method == IntegrationType.parabolic):
             dq[3] = q[3] + F[0]*self.Ts
         else:
             raise PIDIntegralError
