@@ -7,8 +7,10 @@ elew@pdx.edu
 '''
 
 import numpy as np
+import scipy.integrate as spi
+import numpy.matlib as ml
 
-def gradient_fast(s, u, gradAcc):
+def gradient_fast(s, u, gradAcc=1):
     r, c = np.shape(u)
     tangent_vector = np.zeros((r, c+2))
 
@@ -17,13 +19,76 @@ def gradient_fast(s, u, gradAcc):
     s_big = s_big_pre[len(s)-1:2*len(s)+1]
 
     for ndim in range(0, 3):
-        print(u_big[ndim, :], s_big)
+        #print(u_big[ndim, :], s_big)
         x = np.gradient(u_big[ndim, :])/ np.gradient(s_big)
         tangent_vector[ndim, :] = x
 
     tangent_vector = tangent_vector[:, 1:-1]
 
     return tangent_vector
+
+def get_orig_f(curve, f, multiplier=1):
+    nc = np.shape(curve)
+
+    orig_f = np.zeros((nc[0], nc[1]))
+
+    for point in range(0, np.max(np.shape(curve))):
+        vec_at_p = f(curve[:, point])
+        vec_at_p = vec_at_p / np.linalg.norm(vec_at_p)
+        orig_f[:, point] = vec_at_p
+
+    orig_f = multiplier * orig_f
+
+    return orig_f
+
+def get_ideal_f(curve, f, u, ts, ind, pts_u, pts_init, feedback_factor, get_orig_f=get_orig_f, grad = gradient_fast, field_multiplier=1 ):
+    # Get tangent vector by obtaining the gradient from the S curve, then normalize
+    tangent_vector = grad(get_s_curve(curve), curve)
+    norms = (np.sum(np.abs(tangent_vector.T)**2,axis=-1)**(1./2)).T
+    tangent_vector = tangent_vector / norms
+
+    tangent_derivative = grad(get_s_curve(curve), tangent_vector)
+
+    curve_s_vec = get_s_curve(curve)
+    f_orig = get_orig_f(curve, f, field_multiplier)
+    dot_p = np.diag(np.dot(f_orig.T, tangent_derivative))
+    
+    dot_p_cum_int = spi.cumtrapz( dot_p, curve_s_vec)
+    dot_p_cum_int = np.concatenate(([0], dot_p_cum_int))
+
+    # Calculate phi
+    pre_phi = dot_p_cum_int - get_s_curve(curve)/(2*np.pi)*np.trapz(np.concatenate((dot_p, [dot_p[0]])), np.concatenate((curve_s_vec, [2*np.pi])))
+    phi = pre_phi - np.mean(pre_phi)
+    dot_p_ft = np.diag(np.dot(f_orig.T, tangent_vector))
+
+    # get error
+    diff_vec = (ml.repmat((phi - dot_p_ft), 3, 1) * tangent_vector)
+    err = find_error(u, ts - 1, ind, pts_u, pts_init)
+    diff_vec_2 = feedback_factor*ml.repmat((-err).T, 3, 1)*tangent_vector
+
+    # Correct to get f_ideal
+    f_ideal = f_orig + diff_vec - diff_vec_2
+
+    return f_ideal
+
+def find_error(u, ts, ind, pts_u, pts_init):
+    ind_vals = (ind[0:pts_u[ts], ts] - ind[0, ts])/pts_init
+    s_vals = get_s_curve(u[:, 0:pts_u[ts], ts]).T / (2*np.pi)
+    return ind_vals - s_vals
+
+def get_s_curve(curve):
+    curve_big = np.concatenate((curve, curve, curve), axis=1)
+    curve_inc = np.concatenate((curve[:, 1:], curve, curve, np.array(curve[:, 0], ndmin=2).T), axis=1)
+
+    diff = curve_big - curve_inc
+    diff = diff[:, np.max(np.shape(curve)):2*np.max(np.shape(curve))]
+    diff_normal = np.sqrt(np.sum(diff**2, axis=0))
+
+    tot_len = np.sum(diff_normal)
+
+    s_curve = np.concatenate(([0], np.cumsum(diff_normal[:-1]))) / tot_len*2*np.pi
+    return s_curve
+
 
 def get_stable_eigenvectors(f, fixed_pt):
     jacob, j_err = jacobian(f, fixed_pt)
@@ -172,14 +237,62 @@ if __name__ == "__main__":
         y_data = 1+2*np.exp(0.75*x_data)
         return ((c[0] + c[1] * np.exp(c[2]*x_data)) - y_data)**2
 
+    def my_vec_field(point):
+        force = np.zeros((3))
+        force[0]=10*(point[1]-point[0])
+        force[1]=28*point[0]-point[1]-point[0] * point[2]
+        force[2]=point[0]*point[1] - 8/3 * point[2]
+        return force
+
+    def magic(n):
+        n = int(n)
+        if n < 3:
+            raise ValueError("Size must be at least 3")
+        if n % 2 == 1:
+            p = np.arange(1, n+1)
+            return n*np.mod(p[:, None] + p - (n+3)//2, n) + np.mod(p[:, None] + 2*p-2, n) + 1
+        elif n % 4 == 0:
+            J = np.mod(np.arange(1, n+1), 4) // 2
+            K = J[:, None] == J
+            M = np.arange(1, n*n+1, n)[:, None] + np.arange(n)
+            M[K] = n*n + 1 - M[K]
+        else:
+            p = n//2
+            M = magic(p)
+            M = np.block([[M, M+2*p*p], [M+3*p*p, M+p*p]])
+            i = np.arange(p)
+            k = (n-2)//4
+            j = np.concatenate((np.arange(k), np.arange(n-k+1, n)))
+            M[np.ix_(np.concatenate((i, i+p)), j)] = M[np.ix_(np.concatenate((i+p, i)), j)]
+            M[np.ix_([k, k+p], [0, k])] = M[np.ix_([k+p, k], [0, k])]
+        return M 
+  
     jac, err = jacobian(test_function, [1, 1, 1])
-    print(jac)
-    print(err)
+    #print(jac)
+    #print(err)
 
     get_stable_eigenvectors(test_function, [-1,-1,-1])
 
-    print(gradient_fast(np.array([1,2,3]), np.array([[1,2,3],[-1,0,4],[1,1,0]]), 0))
+    #print(gradient_fast(np.array([1,2,3]), np.array([[1,2,3],[-1,0,4],[1,1,0]]), 0))
 
+    #print(get_s_curve(np.array([[8,1,6],[3,5,7],[4,9,2]])))
+    m = magic(8)
+    m = m.T.flatten()
+    m = m[0:60]
+    u = np.reshape(m, (3, 4, 5), order='F')
+    ind = np.zeros((4,5), dtype='int32')
+    ind[0:4, 0] = np.arange(0, 4, 1)
+    pts_u = np.zeros((5), dtype='int32')
+    pts_u[0] = 3
+    pts_u[1] = 3
+    pts_u[2] = 3
+    pts_init = 3
+    feedback_factor = 1
+    field_multiplier = -1
+    curve = magic(3)
 
+    #print(u[:, :, 4])
+
+    print(get_ideal_f(curve, my_vec_field, u, 2, ind, pts_u, pts_init, feedback_factor, field_multiplier=-1))
 
 
