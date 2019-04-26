@@ -9,6 +9,7 @@ elew@pdx.edu
 import numpy as np
 import scipy.integrate as spi
 import numpy.matlib as ml
+from scipy.interpolate import interp1d
 
 def gradient_fast(s, u, gradAcc=1):
     r, c = np.shape(u)
@@ -19,7 +20,6 @@ def gradient_fast(s, u, gradAcc=1):
     s_big = s_big_pre[len(s)-1:2*len(s)+1]
 
     for ndim in range(0, 3):
-        #print(u_big[ndim, :], s_big)
         x = np.gradient(u_big[ndim, :])/ np.gradient(s_big)
         tangent_vector[ndim, :] = x
 
@@ -76,7 +76,53 @@ def find_error(u, ts, ind, pts_u, pts_init):
     s_vals = get_s_curve(u[:, 0:pts_u[ts], ts]).T / (2*np.pi)
     return ind_vals - s_vals
 
+def interp_1d(old_curve, pts_bad, old_pts_used, interp_acc):
+    s_vec = get_s_curve(old_curve)
+    u_big = ml.repmat(old_curve, 1, 3)
+
+    s_big = np.concatenate((s_vec, s_vec+2*np.pi, s_vec+4*np.pi ))
+    new_pt = 0
+    old_pt = 0
+    old_curve = np.concatenate((old_curve, np.array(old_curve[:, 0], ndmin=2).T), axis=1)
+    new_curve = np.zeros((3, old_pts_used + np.sum(pts_bad)))
+
+    while (old_pt < old_pts_used):
+        new_curve[:, new_pt] = old_curve[:, old_pt]
+        if(pts_bad[old_pt] == 1):
+            s_interp = (s_big[old_pt + np.max(np.shape(s_vec))] + s_big[old_pt + np.max(np.shape(s_vec)) + 1])/2
+            interp_func = interp1d(s_big, u_big, kind=interp_acc)
+            interp_point = interp_func(s_interp)
+            new_pt += 1
+            new_curve[:, new_pt] = interp_point.T
+
+        new_pt += 1
+        old_pt += 1
+
+    return new_curve
+
+def get_index(old_index, pts_bad):
+    new_index = np.zeros((np.max(np.shape(old_index))+np.sum(pts_bad)))
+
+    new_pt = 0
+    old_pt = 0
+
+    A = np.array(old_index, ndmin=2).T
+    B = np.array([old_index[-1]+1], ndmin=2)
+    old_index = np.concatenate((A, B),axis=0)
+
+    while (old_pt < (np.max(np.shape(old_index)) - 1) ):
+        new_index[new_pt] = old_index[old_pt]
+        if pts_bad[old_pt] == 1:
+            new_pt += 1
+            interp_pt = (old_index[old_pt] + old_index[old_pt + 1])/2
+            new_index[new_pt] = interp_pt
+        new_pt += 1
+        old_pt += 1
+
+    return new_index
+
 def get_s_curve(curve):
+    # TODO: Replace with get_distance
     curve_big = np.concatenate((curve, curve, curve), axis=1)
     curve_inc = np.concatenate((curve[:, 1:], curve, curve, np.array(curve[:, 0], ndmin=2).T), axis=1)
 
@@ -88,6 +134,16 @@ def get_s_curve(curve):
 
     s_curve = np.concatenate(([0], np.cumsum(diff_normal[:-1]))) / tot_len*2*np.pi
     return s_curve
+
+def get_distance(curve):
+    curve_big = np.concatenate((curve, curve, curve), axis=1)
+    curve_inc = np.concatenate((curve[:, 1:], curve, curve, np.array(curve[:, 0], ndmin=2).T), axis=1)
+
+    diff = curve_big - curve_inc
+    diff = diff[:, np.max(np.shape(curve)):2*np.max(np.shape(curve))]
+    diff_normal = np.sqrt(np.sum(diff**2, axis=0))
+
+    return diff_normal
 
 
 def get_stable_eigenvectors(f, fixed_pt):
@@ -180,8 +236,9 @@ def jacobian(f, fixed_pt):
     return jac, err
 
 def swap_element(vec,ind,val):
-    vec[ind] = val
-    return vec
+    v = np.copy(vec)
+    v[ind] = val
+    return v
 
 
 def vec2mat(vec, n, m):
@@ -228,6 +285,15 @@ def rombex_trap(step_ratio, der_init, rombexpon):
     errest = np.transpose(s)*12.7062047361747*np.sqrt(cov1[0])
 
     return der_romb, errest
+
+def next_curve(curve, f, ts_size, u, ts, index, pts_u, pts_init, getf_func=get_ideal_f, grad_func=gradient_fast, origf_func=get_orig_f, feedback_factor=-1, field_multiplier=1):
+    #get_ideal_f(curve, f, u, ts, ind, pts_u, pts_init, feedback_factor, get_orig_f=get_orig_f, grad = gradient_fast, field_multiplier=1 ):
+    k1 =  ts_size*getf_func(curve, f, u, ts, index, pts_u, pts_init, feedback_factor, get_orig_f=get_orig_f, grad=grad_func, field_multiplier=field_multiplier)
+    k2 =  ts_size*getf_func(curve+.5*k1, f, u, ts, index, pts_u, pts_init, feedback_factor, get_orig_f=get_orig_f, grad=grad_func, field_multiplier=field_multiplier)
+    k3 =  ts_size*getf_func(curve+.5*k2, f, u, ts, index, pts_u, pts_init, feedback_factor, get_orig_f=get_orig_f, grad=grad_func, field_multiplier=field_multiplier)
+    k4 =  ts_size*getf_func(curve+k3, f, u, ts, index,  pts_u, pts_init, feedback_factor, get_orig_f=get_orig_f, grad=grad_func, field_multiplier=field_multiplier)
+
+    return curve+1/6*(k1+2*k2+2*k3+k4)
 
 
 if __name__ == "__main__":
@@ -293,6 +359,11 @@ if __name__ == "__main__":
 
     #print(u[:, :, 4])
 
-    print(get_ideal_f(curve, my_vec_field, u, 2, ind, pts_u, pts_init, feedback_factor, field_multiplier=-1))
+    #print(get_ideal_f(curve, my_vec_field, u, 2, ind, pts_u, pts_init, feedback_factor, field_multiplier=-1))
 
+    curve = magic(3)
+    pts_bad = np.array([0, 1, 0])
+    pts_used = 3
+    acc = "cubic"
 
+    print(interp_1d(curve, pts_bad, pts_used, acc))
