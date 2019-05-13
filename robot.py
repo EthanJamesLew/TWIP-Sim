@@ -33,7 +33,7 @@ class PIDRobot(SysBase):
         self.pid_tilt = IterPID(Ts)
         self.pid_yaw = IterPID(Ts)
 
-        self.pid_tilt.tune(70, 5, 100)
+        self.pid_tilt.tune(70, 1, 300)
         self.pid_yaw.tune(25, 2, 0)
         
         self.pid_tilt.set_IC([0, 0, 0, 0])
@@ -155,7 +155,7 @@ if __name__ == "__main__":
 
             # Setup twip initial state
             dt = 1/30
-            self.twip.set_IC([0, 0, .1, .1, 0, .1])
+            self.twip.set_IC([0, 0, 0.01, 0.0, 0, 0])
             #self.twip.update_current_state(dt, [1/dt*0.5, 1/dt*0.4,  0, 0]) 
             self.dt = dt
             
