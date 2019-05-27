@@ -7,16 +7,16 @@ elew@pdx.edu
 
 import numpy as np
 from math_utils import gradient_fast, get_ideal_f, get_stable_eigenvectors, next_curve, get_ideal_f, get_orig_f, get_distance, interp_1d, get_index
-
+from robot import PIDRobot
 ### Config the Solver ###
 
 ## Dynamical system description
-def my_vec_field(point):
-        force = np.zeros((3))
-        force[0]=10*(point[1]-point[0])
-        force[1]=28*point[0]-point[1]-point[0] * point[2]
-        force[2]=point[0]*point[1] - 8/3 * point[2]
-        return force
+#def my_vec_field(point):
+#        force = np.zeros((3))
+#        force[0]=10*(point[1]-point[0])
+#        force[1]=28*point[0]-point[1]-point[0] * point[2]
+#        force[2]=point[0]*point[1] - 8/3 * point[2]
+#        return force
 
 ## Fixed point in the simulation
 fixed_pt = np.array([[0],[0],[0]], ndmin = 2, dtype='float64')

@@ -46,7 +46,7 @@ class IterPID(IterSysBase):
     def __init__(self, Ts, Tp=0.01):
         IterSysBase.__init__(self, Ts, Tp=Tp, n=1)
         default_PID = {'Kp': 1.0, 'Kd': 1.0, 'Ki': 1.0,
-                         'max': 10000.0, 'i_max': 10000.0, 'd_max': 10000.0,
+                         'max': 10000.0, 'i_max': 10000.0, 'd_max': 10000.0, 'd_off': 0,
                          'i_method' : IntegrationType.trapezoidal, 'd_method' : 'backwards', 'type' : 'linear'}
         self.parameters = default_PID
         self.equations = 'PID'
@@ -101,6 +101,7 @@ class IterPID(IterSysBase):
         i_max = pid['i_max']
         d_max = pid['d_max']
         tot_max = pid['max']
+        d_off = pid['d_off']
         
         dp = np.zeros((1))
         p_term = Kp*self.q[0]
@@ -110,6 +111,13 @@ class IterPID(IterSysBase):
         d_term = minmax(Kd*(self.q[0] - self.q[1])/self.Ts, d_max)
 
         dp[0] = minmax(p_term + i_term + d_term, tot_max)
+
+        # Add d offset
+        if dp[0] < 0:
+            dp[0] -= d_off
+        else:
+            dp[0] += d_off
+
         self.p = dp
 
 if __name__ == '__main__':

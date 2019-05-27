@@ -19,10 +19,10 @@ def is_stable(IC, t_max = 5, a_max = 3.1415/180*80, stable_box = [0, 0, 0]):
         t += dt
         cpos = twip.twip.q
         if((abs(cpos[2]) < stable_box[0]) and (abs(cpos[5]) < stable_box[1]) and (abs(cpos[3]) < stable_box[2])):
-            return True
+            return True, t
         if(abs(cpos[5]) > 2):
-            return False
-    return True
+            return False, t
+    return True, t
 
 def find_stable_box(err=0.05):
     # Find a stable box
@@ -32,7 +32,8 @@ def find_stable_box(err=0.05):
     last_box = box*0
     stab = False
     while((norm_err > err_tol) or not stab):
-        stab = is_stable([0, 0, box[0], box[2], 0, box[1]])      
+        stab = is_stable([0, 0, box[0], box[2], 0, box[1]]) 
+        print(box, norm_err)     
         if(stab):
             box = box + abs(last_box - box)/2
             norm_err = np.linalg.norm(abs(last_box - box))
@@ -41,23 +42,28 @@ def find_stable_box(err=0.05):
             box = box - abs(last_box - box)/2
     return box
 
-stable_box = find_stable_box()
-n_points = 1000
+print("Finding stable box...")
+stable_box = find_stable_box(0.5)
+print("Found stable box: %3.3f" % stable_box[0])
+n_points = 50
 n_found = 0
 a_range = [-np.pi/2, np.pi/2]
 ad_range = [-3/2, 3/2]
 v_range = [-10, 10]
-stab_pts = np.zeros((1, 3))
+stab_pts = np.zeros((1, 4))
 while(n_found < n_points):
     pt = np.array([0, 0, random.uniform(a_range[0], a_range[1]),
                      random.uniform(v_range[0], v_range[1]), 0,
                         random.uniform(ad_range[0], ad_range[1])])
 
-    if is_stable(pt, stable_box=stable_box):
+    is_stable, time = is_stable(pt, stable_box=stable_box)
+    if is_stable:
         print(pt, ' is stable (%d/%d)' % (n_found, n_points))
-        spt = np.array([[pt[2]], [pt[5]], [pt[3]]])
+        spt = np.array([[pt[2]], [pt[5]], [pt[3]], [time]])
         stab_pts = np.append(stab_pts, spt.transpose(), axis=0)
         n_found += 1
+
+np.save("stable_pts_%d.npy" % n_points, stab_pts)
 
 from pyqtgraph.Qt import QtCore, QtGui
 import pyqtgraph.opengl as gl
@@ -77,7 +83,6 @@ w.addItem(g)
 ##  and pxMode = False
 ##
 
-print(stab_pts)
 pos3 = stab_pts
 sp3 = gl.GLScatterPlotItem(pos=pos3, color=(1,1,1,.7), size=0.1, pxMode=False)
 
