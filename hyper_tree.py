@@ -19,6 +19,13 @@ class HyperRectTree(object):
         self.depth = depth
         self.max_depth = max_depth
         self.rects = None
+        self.label = None
+
+    def set_label(self, label):
+        self.label = label
+
+    def get_label(self):
+        return self.label
 
     def is_in_cell(self, coord):
         ''' is_in_cell
@@ -63,7 +70,7 @@ class HyperRectTree(object):
         return [(self.coords[self.n + i] + self.coords[i])/2 for i in range(0, self.n)]
 
     def get_rand_in_cell(self):
-        return [np.random.uniform(self.coords[i], self.coords[self.n + i]) for i in range(self.n)]
+        return np.array([np.random.uniform(self.coords[i], self.coords[self.n + i]) for i in range(self.n)])
 
     def get_even_per_cell(self, m):
         spaces = []
