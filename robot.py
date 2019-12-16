@@ -11,9 +11,9 @@ from pid import IterPID
 from motor import PWMDCMotor
 from twip import TWIPZi
 from system import SysBase
+import json
 
-from PyQt5 import QtGui, QtWidgets, QtOpenGL, QtCore
-from twip_widget import TWIPWidget
+
 
 import numpy as np
 
@@ -98,8 +98,48 @@ class PIDRobot(SysBase):
     def get_position_coordinates(self):
         return self.twip.get_position_coordinates()
 
+    def __str__(self):
+        s = '--- TWIP\n'
+        s += self.twip.__str__()
+        s += '--- Left Motor\n'
+        s += self.motor_l.__str__()
+        s += '--- Right Motor\n'
+        s += self.motor_r.__str__()
+        s += '--- Tilt Controller\n'
+        s += self.pid_tilt.__str__()
+        s += '--- Yaw Controller\n'
+        s += self.pid_yaw.__str__()
+        return s
+
+
+def set_params(model, descr, param):
+    if param in descr:
+        for p in descr[param]:
+            model.set_parameter(p, descr[param][p])
+
+
+def set_controller(model, descr, param):
+    if param in descr:
+        if descr[param]["type"] == "PID":
+            for p in descr[param]["params"]:
+                model.set_parameter(p, descr[param]["params"][p])
+
+
+def load_robot_json(filename):
+    rbt = PIDRobot(0.02)
+    with open(filename, 'r') as fp:
+        rbt_descr = json.load(fp)
+        set_params(rbt.twip, rbt_descr, 'twip')
+        set_params(rbt.motor_l, rbt_descr, 'motor_left')
+        set_params(rbt.motor_l, rbt_descr, 'motor_right')
+        set_controller(rbt.pid_tilt, rbt_descr, 'controller_tilt')
+        set_controller(rbt.pid_yaw, rbt_descr, 'controller_yaw')
+    return rbt
+
 if __name__ == "__main__":
     import matplotlib.pyplot as plt
+    from PyQt5 import QtGui, QtWidgets, QtOpenGL, QtCore
+    from twip_widget import TWIPWidget
     from plot_widget import RollingPlotWidget
     class MainWindow(QtWidgets.QMainWindow):
         ''' Realtime TWIP viewer program
@@ -108,7 +148,7 @@ if __name__ == "__main__":
             super(MainWindow, self).__init__()
 
             # Create TWIP model
-            self.twip = PIDRobot(0.03)
+            self.twip = load_robot_json("docs/robot_generic.json")
             self.twip_widget = TWIPWidget(self, self.twip)
 
             self.resize(1900,1000)
@@ -155,7 +195,7 @@ if __name__ == "__main__":
 
             # Setup twip initial state
             dt = 1/30
-            self.twip.set_IC([0, 0, 0, 0, 0, 0])
+            self.twip.set_IC([0, 0, 0.4, -0.1, 0, 0])
             self.twip.update_current_state(dt, [1/dt*0.5, 1/dt*0.4,  0, 0]) 
             self.dt = dt
             

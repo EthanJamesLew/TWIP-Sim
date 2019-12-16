@@ -1,0 +1,60 @@
+{
+  "twip": {
+    "Mw": 0.3,
+    "Iw": 0.02,
+    "r": 0.2,
+    "m": 0.5,
+    "l": 0.15,
+    "d": 0.6,
+    "M": 0.7,
+    "IM": 0.08,
+    "Ip": 0.06,
+    "g": 9.81
+  },
+  "motor_left": {
+    "J": 0.001,
+    "L": 0.05,
+    "R": 1,
+    "Km": 0.05,
+    "Ke": 0.05,
+    "d": 0.3,
+    "b": 0.0001
+  },
+  "motor_right": {
+    "J": 0.001,
+    "L": 0.05,
+    "R": 1,
+    "Km": 0.05,
+    "Ke": 0.05,
+    "d": 0.3,
+    "b": 0.0001
+  },
+  "controller_tilt": {
+    "type": "PID",
+    "params": {
+      "Kp": 75.0,
+      "Kd": 5.0,
+      "Ki": 100.0,
+      "max": 10000.0,
+      "i_max": 10000.0,
+      "d_max": 10000.0,
+      "d_off": 0,
+      "d_method": "backwards",
+      "type": "linear"
+    }
+  },
+  "controller_yaw": {
+    "type": "PID",
+    "params": {
+      "Kp": 25.0,
+      "Kd": 2.0,
+      "Ki": 0.0,
+      "max": 10000.0,
+      "i_max": 10000.0,
+      "d_max": 10000.0,
+      "d_off": 0,
+      "d_method": "backwards",
+      "type": "linear"
+    }
+  }
+}
