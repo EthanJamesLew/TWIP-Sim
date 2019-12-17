@@ -81,7 +81,7 @@ if __name__ == "__main__":
             wid.setLayout(mainLayout)
 
             # Setup twip initial state
-            dt = 1/30
+            dt = 1/90
             self.twip.set_IC([0, 0, 0, 0, 0, 0])
             self.twip.update_current_state(dt, F = [1/dt*0.5, -1/dt*0.4,  0, 0]) 
             self.dt = dt
