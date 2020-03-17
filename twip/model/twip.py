@@ -32,7 +32,8 @@ class className(object):
 
 import numpy as np
 from numpy import sin, cos
-from system import SysBase, wraptopi
+from .system import SysBase
+
 
 class TWIPZi(SysBase):
     '''TWIP System described in Z. Li et al, Advanced Control of Wheeled Inverted Pendulums, Springer-Verlag London 2013

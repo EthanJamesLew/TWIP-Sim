@@ -7,10 +7,8 @@ elew@pdx.edu
 Create a PID controller capable of being used with SysBase Dynamics object 
 '''
 
-from system import IterSysBase, wraptopi, minmax
+from twip.model.system import IterSysBase, wraptopi, minmax
 import numpy as np
-from numpy import sin, cos
-from numba import jit
 
 import enum 
 class IntegrationType(enum.Enum): 

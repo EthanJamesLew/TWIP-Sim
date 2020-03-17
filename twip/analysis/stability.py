@@ -10,6 +10,8 @@ Methods to perform stability analysis
 import numpy as np
 from tqdm import tqdm
 
+from math import sqrt
+
 from sklearn.gaussian_process import GaussianProcessClassifier
 from sklearn.gaussian_process.kernels import RBF
 

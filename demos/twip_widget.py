@@ -21,15 +21,17 @@ Naming Conventions:
     item_<name> - meshItem object
     mesh_<name> - gl.MeshData object
 '''
+import os
 
 from PyQt5 import QtGui, QtWidgets, QtOpenGL, QtCore
-import pyqtgraph as pg
 import pyqtgraph.opengl as gl
 import pywavefront as wave
-from twip import TWIPZi, wraptopi
+
 import numpy as np
 from numpy import sin, cos, floor
 import time
+
+from twip.model.system import wraptopi
 
 def obj_to_mesh(obj_context, object_name):
     ''' Take geometry contents from a pywavefront scene and put it in a gl.MeshData structure
@@ -59,7 +61,7 @@ class TWIPWidget(gl.GLViewWidget):
         gl.GLViewWidget.__init__(self, parent)
 
         # Import TWIP geometry from twip.obj
-        twip_scene = wave.Wavefront('assets/twip.obj',  encoding="iso-8859-1", parse=True, collect_faces=True)
+        twip_scene = wave.Wavefront(  os.path.dirname(os.path.realpath(__file__)) + '/assets/twip.obj', encoding="iso-8859-1", parse=True, collect_faces=True)
         self.mesh_wheel_r = obj_to_mesh(twip_scene, 'wheel_r')
         self.mesh_wheel_l = obj_to_mesh(twip_scene, 'wheel_l')
         self.mesh_track = obj_to_mesh(twip_scene, 'track')
@@ -100,9 +102,6 @@ class TWIPWidget(gl.GLViewWidget):
         self.fps = 0
 
         self.do_hud = hud
-
-        
-        
 
     def assemble_robot(self):
         ''' Create meshItems containing the robot's geometry and set mesh attributes, namely shading and parents
@@ -228,7 +227,6 @@ class TWIPWidget(gl.GLViewWidget):
         if self.do_hud:
             self.paint_hud()
 
-
     def paint_hud(self, D = None):
         ''' Paint the HUD information
         '''
@@ -236,9 +234,9 @@ class TWIPWidget(gl.GLViewWidget):
         self.painter.begin(self)
         self.painter.setPen(QtCore.Qt.white)
         self.painter.setFont(self.hud_font)
-        self.painter.drawText(QtCore.QRectF(3, 3,w,h), QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop,  "%s\nα: %3.3f\nθ: %3.3f \n(x, y): %1.3f, %1.3f" % (self.twip.equations, wraptopi(self.pstate[5])*180/3.141592, wraptopi(self.pstate[2])*180/3.141592, self.pstate[0], self.pstate[1]))
+        self.painter.drawText(QtCore.QRectF(3, 3,w,h), QtCore.Qt.AlignLeft|QtCore.Qt.AlignTop,  "%s\nα: %3.3f\nθ: %3.3f \n(x, y): %1.3f, %1.3f" %
+                              (self.twip.equations, wraptopi(self.pstate[5])*180/3.141592, wraptopi(self.pstate[2])*180/3.141592, self.pstate[0], self.pstate[1]))
         self.painter.drawText(QtCore.QRectF(0,0,w - 3,h - 3), QtCore.Qt.AlignRight|QtCore.Qt.AlignBottom, "%d FPS" % round(self.fps)  )
-        #self.painter.drawText(QtCore.QRectF(0,0,w - 3,h - 3), QtCore.Qt.AlignRight|QtCore.Qt.AlignTop, "Controller: PID\nP: %1.3f\nD: %1.3f\nI: %1.3f" % (self.c.kp, self.c.kd, self.c.ki)  )
         self.painter.end()
 
     def translate_all(self, x, y, z, local=False):
@@ -267,6 +265,10 @@ class TWIPWidget(gl.GLViewWidget):
         self.item_track.rotate(angle, x, y, z, local=local)
 
 if __name__ == "__main__":
+    from twip.model.twip import TWIPZi
+    from twip.model.system import wraptopi
+
+
     class MainWindow(QtWidgets.QMainWindow):
         ''' Realtime TWIP viewer program
         '''
