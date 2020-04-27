@@ -14,10 +14,4 @@ cd twip_sim
 pip install -r requirements.txt
 ```
 
-Most scripts have simple functionality in their `__main__` only sections. For example, run
-
-```
-python twip_widget.py
-```
-
-to see a sample applet. 
+Go to demos and docs to see the simulator!
