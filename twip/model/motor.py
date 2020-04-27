@@ -8,9 +8,10 @@ Credit to Justin Patterson (jp32@pdx.edu) for providing this model and measuring
 
 import numpy as np
 from numpy import sqrt
-from system import SysBase
+from twip.model.system import SysBase
 
 import time
+
 class DCMotor(SysBase):
     ''' DC Motor Description
 
@@ -92,7 +93,6 @@ class PWMDCMotor(DCMotor):
 
         sign = np.sign(F[0])
         pwm = min(max(abs(F[0]), 0), 2**res-1)
-        #print(sign*pwm, F)
         return np.array([sign*Vs*sqrt(pwm/(2**res-1))])
 
     def vdq(self, t, q, F):
